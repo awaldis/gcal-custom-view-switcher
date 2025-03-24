@@ -1,13 +1,51 @@
 // ==UserScript==
-// @name         GCal Custom View (4 days / 7 days) - SPA Aware
-// @version      1.3
-// @description  Adds two buttons (4 days / 7 days) on main GCal page, centered horizontally, even if you navigate via SPA.
+// @name         GCal Custom View Switcher
+// @author       Andrew Waldis
+// @version      2024-03-24.0
+// @description  On the Google Calendar web page, adds buttons that change the number of days displayed.
 // @match        https://calendar.google.com/calendar/*
 // @grant        none
 // ==/UserScript==
 
 (function() {
     'use strict';
+
+    /**********************************************************************
+     * Observe "Settings saved" toast until first detection, or until a timeout.
+     * Logs a message whenever a node containing "Settings saved" is added.
+     * After detecting the toast (or timing out), it disconnects the observer and returns.
+     **********************************************************************/
+    function observeSettingsSavedToast(timeoutMs = 5000) {
+        let toastDetected = false;
+
+        const toastObserver = new MutationObserver(mutations => {
+            if (toastDetected) return; // Just in case multiple triggers happen quickly
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    if (
+                        node.nodeType === Node.ELEMENT_NODE &&
+                        node.textContent.includes('Settings saved')
+                    ) {
+                        console.log('[Tampermonkey] Toast detected:', node);
+                        toastDetected = true;
+                        toastObserver.disconnect();
+                        return;
+                    }
+                }
+            }
+        });
+
+        // Start observing for "Settings saved"
+        toastObserver.observe(document.body, { childList: true, subtree: true });
+
+        // If not seen within timeoutMs, stop observing
+        setTimeout(() => {
+            if (!toastDetected) {
+                console.log(`[Tampermonkey] Timed out waiting ${timeoutMs}ms for "Settings saved" toast.`);
+                toastObserver.disconnect();
+            }
+        }, timeoutMs);
+    }
 
     /**
      * Finds and clicks the option matching "<X> days" in the "Set custom view" listbox.
@@ -21,6 +59,7 @@
             console.log('[Tampermonkey] Could not find the custom view listbox.');
             return false;
         }
+
         // Look for an element with role="option" whose text is exactly dayString
         const options = ul.querySelectorAll('[role="option"]');
         for (const opt of options) {
@@ -45,14 +84,17 @@
             // We only want to do this once
             localStorage.removeItem('setCustomViewDays');
 
+            // Observe the "Settings saved" toast
+            observeSettingsSavedToast(20000);
+
             // Observe DOM changes until we can set the custom view
             const observer = new MutationObserver(() => {
                 if (setCustomView(`${desiredDays} days`)) {
                     observer.disconnect();
                     // If you want to go back automatically, uncomment:
                     /*
-                    //localStorage.setItem('justSetCustomView', 'true');
-                    //location.href = 'https://calendar.google.com/calendar/u/0/r';
+                    // localStorage.setItem('justSetCustomView', 'true');
+                    // location.href = 'https://calendar.google.com/calendar/u/0/r';
                     */
                 }
             });
