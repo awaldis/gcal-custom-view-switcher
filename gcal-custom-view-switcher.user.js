@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCal Custom View Switcher
 // @author       Andrew Waldis
-// @version      2024-03-24.0
+// @version      2024-03-25.0
 // @description  On the Google Calendar web page, adds buttons that change the number of days displayed.
 // @match        https://calendar.google.com/calendar/*
 // @grant        none
@@ -12,14 +12,13 @@
 
     /**********************************************************************
      * Observe "Settings saved" toast until first detection, or until a timeout.
-     * Logs a message whenever a node containing "Settings saved" is added.
-     * After detecting the toast (or timing out), it disconnects the observer and returns.
+     * After detecting the toast, attempt to click the "Go back" arrow.
      **********************************************************************/
     function observeSettingsSavedToast(timeoutMs = 5000) {
         let toastDetected = false;
 
         const toastObserver = new MutationObserver(mutations => {
-            if (toastDetected) return; // Just in case multiple triggers happen quickly
+            if (toastDetected) return;
             for (const mutation of mutations) {
                 for (const node of mutation.addedNodes) {
                     if (
@@ -29,6 +28,15 @@
                         console.log('[Tampermonkey] Toast detected:', node);
                         toastDetected = true;
                         toastObserver.disconnect();
+
+                        // Now click the "Go back" arrow
+                        const arrowButton = document.querySelector('div[aria-label="Go back"][role="button"]');
+                        if (arrowButton) {
+                            console.log('[Tampermonkey] Clicking the "Go back" arrow...');
+                            arrowButton.click();
+                        } else {
+                            console.log('[Tampermonkey] Could not find the "Go back" arrow button.');
+                        }
                         return;
                     }
                 }
@@ -38,7 +46,7 @@
         // Start observing for "Settings saved"
         toastObserver.observe(document.body, { childList: true, subtree: true });
 
-        // If not seen within timeoutMs, stop observing
+        // If toast not seen within timeoutMs, stop observing
         setTimeout(() => {
             if (!toastDetected) {
                 console.log(`[Tampermonkey] Timed out waiting ${timeoutMs}ms for "Settings saved" toast.`);
@@ -84,18 +92,13 @@
             // We only want to do this once
             localStorage.removeItem('setCustomViewDays');
 
-            // Observe the "Settings saved" toast
+            // Watch for the "Settings saved" toast, then go back
             observeSettingsSavedToast(20000);
 
             // Observe DOM changes until we can set the custom view
             const observer = new MutationObserver(() => {
                 if (setCustomView(`${desiredDays} days`)) {
                     observer.disconnect();
-                    // If you want to go back automatically, uncomment:
-                    /*
-                    // localStorage.setItem('justSetCustomView', 'true');
-                    // location.href = 'https://calendar.google.com/calendar/u/0/r';
-                    */
                 }
             });
             observer.observe(document.documentElement, { childList: true, subtree: true });
