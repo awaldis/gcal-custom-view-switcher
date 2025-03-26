@@ -1,0 +1,12 @@
+{
+    "cSpell.words": [
+        "customview",
+        "navigations",
+        "tampermonkey",
+        "Tampermonkey"
+    ],
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": "explicit"
+    }
+}
+  
