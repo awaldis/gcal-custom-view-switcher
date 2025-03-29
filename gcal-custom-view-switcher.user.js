@@ -118,26 +118,11 @@
     }
   }
 
-  /**
-   * On the main page, if we just set the custom view, refresh automatically.
-   * Otherwise, add two buttons (4 days / 7 days) at the top center.
-   */
-  function handleMainPage() {
-    if (localStorage.getItem("justSetCustomView") === "true") {
-      localStorage.removeItem("justSetCustomView");
-      console.log(
-        "[Tampermonkey] Reloading main page to display the updated custom view."
-      );
-      location.reload(); // Force a full reload to show the new view right away
-      return;
-    }
-    addButtonsOnMainPage();
-  }
-
-  /**
-   * Inserts two buttons ("4 days", "7 days") in a container centered at the top of the page.
-   * If they're already there, don't insert them again.
-   */
+  //-------------------------------------------------------------------------
+  // Inserts custom view shortcut buttons in a container centered at the top
+  // of the main calendar page.
+  // If they're already there, don't insert them again.
+  //-------------------------------------------------------------------------
   function addButtonsOnMainPage() {
     // Check if we already added them
     if (document.getElementById("tampermonkey-customview-container")) {
@@ -184,7 +169,7 @@
     if (/\/r\/settings/.test(location.href)) {
       handleSettingsPage();
     } else {
-      handleMainPage();
+      addButtonsOnMainPage();
     }
   }
 
