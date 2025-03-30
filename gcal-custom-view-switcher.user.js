@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCal Custom View Switcher
 // @author       Andrew Waldis
-// @version      2024-03-27.0
+// @version      2024-03-30.0
 // @description  On the Google Calendar web page, adds buttons that change the number of days displayed.
 // @match        https://calendar.google.com/calendar/*
 // @grant        none
@@ -10,10 +10,10 @@
 (function () {
   "use strict";
 
-  /**********************************************************************
-   * Observe "Settings saved" toast until first detection, or until a timeout.
-   * After detecting the toast, attempt to click the "Go back" arrow.
-   **********************************************************************/
+  //-------------------------------------------------------------------------
+  // Observe "Settings saved" toast until first detection, or until a timeout.
+  // After detecting the toast, attempt to click the "Go back" arrow.
+  //-------------------------------------------------------------------------
   function observeSettingsSavedToast(timeoutMs = 5000) {
     let toastDetected = false;
 
@@ -61,11 +61,13 @@
     }, timeoutMs);
   }
 
-  /**
-   * Finds and clicks the option matching "<X> days" in the "Set custom view" listbox.
-   * @param {string} dayString - e.g. "4 days" or "7 days"
-   * @returns {boolean} true if the option was found and clicked, false otherwise
-   */
+  //-------------------------------------------------------------------------
+  // Finds and clicks the option matching "<X> days" in the "Set custom view"
+  // listbox.
+  // @param {string} dayString - e.g. "4 days" or "7 days"
+  // @returns {boolean} true if the option was found and clicked, false
+  // otherwise
+  //-------------------------------------------------------------------------
   function setCustomView(dayString) {
     // <ul role="listbox" aria-label="Set custom view"> is the container
     const ul = document.querySelector(
@@ -92,17 +94,21 @@
     return false;
   }
 
-  /**
-   * On the Settings page, if we intended to set the custom view, do it.
-   * (We've commented out automatically returning to the main page.)
-   */
+  //-------------------------------------------------------------------------
+  // This function is intended to run when one of our custom buttons is
+  // clicked and causes the settings page to load.  It kicks off other
+  // functions that make the setting change and maneuver back to the main
+  // page.
+  //-------------------------------------------------------------------------
   function handleSettingsPage() {
+    // Get the number of days set by the button click.
     const desiredDays = localStorage.getItem("setCustomViewDays");
     if (desiredDays) {
       // We only want to do this once
       localStorage.removeItem("setCustomViewDays");
 
-      // Watch for the "Settings saved" toast, then go back
+      // Kick off an observer that is looking for the "Settings saved" toast,
+      // and will take appropriate action when it appears (or doesn't appear).
       observeSettingsSavedToast(20000);
 
       // Observe DOM changes until we can set the custom view
@@ -162,9 +168,10 @@
     document.body.appendChild(container);
   }
 
-  /**
-   * Our main entry point: Decides which function to call based on the current URL.
-   */
+  //-------------------------------------------------------------------------
+  // Our main entry point: Decides which function to call based on the
+  // current URL.
+  //-------------------------------------------------------------------------
   function init() {
     if (/\/r\/settings/.test(location.href)) {
       handleSettingsPage();
