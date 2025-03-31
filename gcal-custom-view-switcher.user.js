@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCal Custom View Switcher
 // @author       Andrew Waldis
-// @version      2024-03-30.0
+// @version      2024-03-31.0
 // @description  On the Google Calendar web page, adds buttons that change the number of days displayed.
 // @match        https://calendar.google.com/calendar/*
 // @grant        none
@@ -10,10 +10,50 @@
 (function () {
   "use strict";
 
-  //-------------------------------------------------------------------------
+  // We'll store the message element globally so we can remove it from anywhere
+  let messageElement = null;
+
+  //------------------------------------------------------------------------
+  // Show a status message on the Settings page (e.g., "Attempting to change...")
+  //------------------------------------------------------------------------
+  function showStatusMessage(desiredDays) {
+    // If there's already a message displayed, remove it first
+    removeStatusMessage();
+
+    // Create a container div for our status
+    messageElement = document.createElement("div");
+    messageElement.textContent = `Attempting to change the custom view to ${desiredDays} days...`;
+    Object.assign(messageElement.style, {
+      position: "fixed",
+      top: "80px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      color: "#fff",
+      padding: "8px 16px",
+      borderRadius: "6px",
+      fontSize: "14px",
+      zIndex: 999999,
+    });
+
+    document.body.appendChild(messageElement);
+  }
+
+  //------------------------------------------------------------------------
+  // Remove the status message from the DOM if it exists
+  //------------------------------------------------------------------------
+  function removeStatusMessage() {
+    if (messageElement) {
+      messageElement.remove();
+      messageElement = null;
+    }
+  }
+
+  //------------------------------------------------------------------------
   // Observe "Settings saved" toast until first detection, or until a timeout.
-  // After detecting the toast, attempt to click the "Go back" arrow.
-  //-------------------------------------------------------------------------
+  // After detecting the toast, attempt to click the "Go back" arrow and
+  // remove our status message.
+  //------------------------------------------------------------------------
   function observeSettingsSavedToast(timeoutMs = 5000) {
     let toastDetected = false;
 
@@ -28,6 +68,9 @@
             console.log("[Tampermonkey] Toast detected:", node);
             toastDetected = true;
             toastObserver.disconnect();
+
+            // Remove the status message
+            removeStatusMessage();
 
             // Now click the "Go back" arrow
             const arrowButton = document.querySelector(
@@ -57,17 +100,17 @@
           `[Tampermonkey] Timed out waiting ${timeoutMs}ms for "Settings saved" toast.`
         );
         toastObserver.disconnect();
+
+        // Remove the status message if it still exists
+        removeStatusMessage();
       }
     }, timeoutMs);
   }
 
-  //-------------------------------------------------------------------------
+  //------------------------------------------------------------------------
   // Finds and clicks the option matching "<X> days" in the "Set custom view"
-  // listbox.
-  // @param {string} dayString - e.g. "4 days" or "7 days"
-  // @returns {boolean} true if the option was found and clicked, false
-  // otherwise
-  //-------------------------------------------------------------------------
+  // listbox. Returns true if the option was found and clicked, else false.
+  //------------------------------------------------------------------------
   function setCustomView(dayString) {
     // <ul role="listbox" aria-label="Set custom view"> is the container
     const ul = document.querySelector(
@@ -88,9 +131,7 @@
         return true;
       }
     }
-    console.log(
-      `[Tampermonkey] No "${dayString}" option found in the listbox.`
-    );
+    console.log(`[Tampermonkey] No "${dayString}" option found in the listbox.`);
     return false;
   }
 
@@ -106,6 +147,9 @@
     if (desiredDays) {
       // We only want to do this once
       localStorage.removeItem("setCustomViewDays");
+
+      // Show the user a status message while we do the changes
+      showStatusMessage(desiredDays);
 
       // Kick off an observer that is looking for the "Settings saved" toast,
       // and will take appropriate action when it appears (or doesn't appear).
@@ -135,7 +179,6 @@
       return; // Avoid duplicating the container
     }
 
-    // Create a container to hold the buttons
     const container = document.createElement("div");
     container.id = "tampermonkey-customview-container";
     container.style.position = "fixed";
@@ -145,7 +188,6 @@
     container.style.justifyContent = "center";
     container.style.zIndex = 999999;
 
-    // Button factory
     function createButton(label, daysValue) {
       const btn = document.createElement("button");
       btn.textContent = label; // e.g. "4 days" or "7 days"
@@ -155,6 +197,7 @@
         // Navigate to Settings
         location.href = "https://calendar.google.com/calendar/u/0/r/settings";
       });
+
       return btn;
     }
 
@@ -184,7 +227,8 @@
   init();
 
   // 2) Also poll for URL changes every 500 ms (handles single-page navigations).
-  //    If the URL changes, we call init() again, which re-checks if we are on the main page or settings.
+  //    If the URL changes, we call init() again, which re-checks if we
+  //    are on the main page or settings.
   let lastUrl = location.href;
   setInterval(() => {
     if (location.href !== lastUrl) {
