@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCal Custom View Switcher
 // @author       Andrew Waldis
-// @version      2024-03-31.0
+// @version      2024-04-01.0
 // @description  On the Google Calendar web page, adds buttons that change the number of days displayed.
 // @match        https://calendar.google.com/calendar/*
 // @grant        none
@@ -13,6 +13,18 @@
   // We'll store the message element globally so we can remove it from anywhere
   let messageElement = null;
 
+  // A small helper to get the script version from metadata
+  function getScriptVersion() {
+    if (
+      typeof GM_info !== "undefined" &&
+      GM_info.script &&
+      GM_info.script.version
+    ) {
+      return GM_info.script.version;
+    }
+    return "unknown";
+  }
+
   //------------------------------------------------------------------------
   // Show a status message on the Settings page (e.g., "Attempting to change...")
   //------------------------------------------------------------------------
@@ -20,9 +32,15 @@
     // If there's already a message displayed, remove it first
     removeStatusMessage();
 
+    const version = getScriptVersion();
+
     // Create a container div for our status
     messageElement = document.createElement("div");
-    messageElement.textContent = `Attempting to change the custom view to ${desiredDays} days...`;
+    // Notice we use innerHTML so we can include a <br> for the second line
+    messageElement.innerHTML = `
+      Attempting to change the custom view to ${desiredDays} days...<br/>
+      Script version: ${version}
+    `;
     Object.assign(messageElement.style, {
       position: "fixed",
       top: "80px",
@@ -34,6 +52,7 @@
       borderRadius: "6px",
       fontSize: "14px",
       zIndex: 999999,
+      textAlign: "center",
     });
 
     document.body.appendChild(messageElement);
@@ -131,7 +150,9 @@
         return true;
       }
     }
-    console.log(`[Tampermonkey] No "${dayString}" option found in the listbox.`);
+    console.log(
+      `[Tampermonkey] No "${dayString}" option found in the listbox.`
+    );
     return false;
   }
 
