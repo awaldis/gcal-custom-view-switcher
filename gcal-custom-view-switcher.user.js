@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GCal Custom View Switcher
 // @author       Andrew Waldis
-// @version      2024-04-01.0
+// @version      2024-04-02.0
 // @description  On the Google Calendar web page, adds buttons that change the number of days displayed.
 // @match        https://calendar.google.com/calendar/*
 // @grant        none
@@ -39,7 +39,7 @@
     // Notice we use innerHTML so we can include a <br> for the second line
     messageElement.innerHTML = `
       Attempting to change the custom view to ${desiredDays} days...<br/>
-      Script version: ${version}
+      <span style="color: #aaa;">(Tampermonkey UserScript Version: ${version})</span>
     `;
     Object.assign(messageElement.style, {
       position: "fixed",
